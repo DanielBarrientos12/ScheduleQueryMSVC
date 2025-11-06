@@ -1,0 +1,82 @@
+version: "3.8"
+
+services:
+  # === MySQL para schedule-query-msvc ===
+  mysql-schedule-db:
+    image: mysql:8.0
+    container_name: schedule_mysql_dev
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: vet
+      MYSQL_USER: postgres
+      MYSQL_PASSWORD: postgres
+    ports:
+      - "3310:3306"
+    volumes:
+      - mysql_schedule_data_dev:/var/lib/mysql
+    networks:
+      - schedule-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 20s
+      retries: 10
+
+  # === RabbitMQ ===
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: schedule_rabbitmq_dev
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # panel web: http://localhost:15672 (guest/guest)
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - schedule-network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # === schedule-query-msvc ===
+  schedule-query-msvc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: schedule_query_dev
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      JDBC_DATABASE_URL: jdbc:mysql://mysql-schedule-db:3306/vet?useSSL=false&serverTimezone=UTC
+      JDBC_DATABASE_USERNAME: postgres
+      JDBC_DATABASE_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      TZ: America/Bogota
+      PORT: 8082
+    depends_on:
+      mysql-schedule-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - schedule-network
+
+volumes:
+  mysql_schedule_data_dev:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+networks:
+  schedule-network:
+    driver: bridge

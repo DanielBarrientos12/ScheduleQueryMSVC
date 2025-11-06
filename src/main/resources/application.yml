@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: schedule-query-msvc
+
+  datasource:
+    url: ${JDBC_DATABASE_URL:jdbc:mysql://mysql:3306/vet?useSSL=false&serverTimezone=UTC}
+    username: ${JDBC_DATABASE_USERNAME:root}
+    password: ${JDBC_DATABASE_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 2000     # 2s
+          multiplier: 2.0            # backoff exponencial
+          max-interval: 30000        # límite 30s entre reintentos
+          max-attempts: 5            # 5 intentos en total (1 intento + 4 reintentos)
+        default-requeue-rejected: false
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+server:
+  port: ${PORT:8082}
+
+app:
+  exchange: vetcore.events
+  queue: schedule.query.queue
+  dlq: schedule.query.dlq
+  routing-keys:
+    - appointment.created
+    - appointment.rescheduled
+    - appointment.cancelled
+    - appointment.attended
+  timezone: "America/Bogota"
