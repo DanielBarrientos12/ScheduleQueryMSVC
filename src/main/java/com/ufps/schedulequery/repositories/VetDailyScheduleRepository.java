@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface VetDailyScheduleRepository extends JpaRepository <VetDailySchedule, Long> {
     Optional<VetDailySchedule> findByAppointmentId(Long appointmentId);
     List<VetDailySchedule> findByVetIdAndDateOrderBySlotTime(Long vetId, LocalDate date);
+    List<VetDailySchedule> findByVetId(Long vetId);
 }

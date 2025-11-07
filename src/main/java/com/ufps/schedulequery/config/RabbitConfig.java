@@ -17,55 +17,40 @@ public class RabbitConfig {
     @Value("${app.dlq}")
     private String dlqName;
 
-    @Value("${app.routing-keys[0]}")
-    private String rk0;
-    @Value("${app.routing-keys[1]}")
-    private String rk1;
-    @Value("${app.routing-keys[2]}")
-    private String rk2;
-    @Value("${app.routing-keys[3]}")
-    private String rk3;
-
     @Bean
-    public TopicExchange appExchange() {
-        return ExchangeBuilder.topicExchange(exchangeName).durable(true).build();
+    public TopicExchange eventsExchange() {
+        return new TopicExchange(exchangeName, true, false);
     }
 
-    /**
-     * Cola principal. Declaramos argumentos para que en caso de reject/ttl expire vaya a la DLQ.
-     * NOTA: usamos dead-letter-exchange "" (exchange por defecto) y routing key = dlqName.
-     */
     @Bean
     public Queue scheduleQueue() {
         return QueueBuilder.durable(queueName)
-                .withArgument("x-dead-letter-exchange", "")            // exchange por defecto
-                .withArgument("x-dead-letter-routing-key", dlqName)   // mensaje irá a la DLQ
+                .withArgument("x-dead-letter-exchange", "")
                 .build();
     }
 
     @Bean
-    public Queue scheduleDlq() {
+    public Queue deadLetterQueue() {
         return QueueBuilder.durable(dlqName).build();
     }
 
     @Bean
-    public Binding bindCreated(Queue scheduleQueue, TopicExchange appExchange) {
-        return BindingBuilder.bind(scheduleQueue).to(appExchange).with(rk0);
+    public Binding createdBinding() {
+        return BindingBuilder.bind(scheduleQueue()).to(eventsExchange()).with("appointment.created");
     }
 
     @Bean
-    public Binding bindRescheduled(Queue scheduleQueue, TopicExchange appExchange) {
-        return BindingBuilder.bind(scheduleQueue).to(appExchange).with(rk1);
+    public Binding rescheduledBinding() {
+        return BindingBuilder.bind(scheduleQueue()).to(eventsExchange()).with("appointment.rescheduled");
     }
 
     @Bean
-    public Binding bindCancelled(Queue scheduleQueue, TopicExchange appExchange) {
-        return BindingBuilder.bind(scheduleQueue).to(appExchange).with(rk2);
+    public Binding cancelledBinding() {
+        return BindingBuilder.bind(scheduleQueue()).to(eventsExchange()).with("appointment.cancelled");
     }
 
     @Bean
-    public Binding bindAttended(Queue scheduleQueue, TopicExchange appExchange) {
-        return BindingBuilder.bind(scheduleQueue).to(appExchange).with(rk3);
+    public Binding attendedBinding() {
+        return BindingBuilder.bind(scheduleQueue()).to(eventsExchange()).with("appointment.attended");
     }
-
 }
