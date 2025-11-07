@@ -3,10 +3,10 @@ spring:
     name: schedule-query-msvc
 
   datasource:
-    url: ${JDBC_DATABASE_URL:jdbc:mysql://mysql:3306/vet?useSSL=false&serverTimezone=UTC}
-    username: ${JDBC_DATABASE_USERNAME:root}
-    password: ${JDBC_DATABASE_PASSWORD:root}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${JDBC_DATABASE_URL:jdbc:postgresql://postgres-db:5432/vet}
+    username: ${JDBC_DATABASE_USERNAME:postgres}
+    password: ${JDBC_DATABASE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
 
@@ -16,6 +16,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
 
   rabbitmq:
@@ -29,7 +30,7 @@ spring:
           enabled: true
           initial-interval: 2000     # 2s
           multiplier: 2.0            # backoff exponencial
-          max-interval: 30000        # límite 30s entre reintentos
+          max-interval: 30000        # limite 30s entre reintentos
           max-attempts: 5            # 5 intentos en total (1 intento + 4 reintentos)
         default-requeue-rejected: false
 
